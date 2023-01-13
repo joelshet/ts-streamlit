@@ -1,12 +1,11 @@
 import streamlit as st
 import pandas as pd
-import config
 import sqlalchemy
 from sqlalchemy import text
 
 # --- Setup the database connection
 
-url = f'postgresql+psycopg2://{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}'
+url = f'postgresql+psycopg2://{st.secrets.DB_USER}:{st.secrets.DB_PASS}@{st.secrets.DB_HOST}:{st.secrets.DB_PORT}/{st.secrets.DB_NAME}'
 engine = sqlalchemy.create_engine(url)
 
 
