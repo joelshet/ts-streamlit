@@ -33,12 +33,11 @@ symbol_list = load_data(symbol_query)
 symbol = st.sidebar.selectbox(label="Select a symbol", options=symbol_list)
 
 
-# --- Create and run queries, displaying as desired
+# --- Predefined charts for a given bucket size
 
 f"""
 Most traded symbols in the last {bucket_value} days
 """
-
 query = f"""
     SELECT symbol, max(price_high) AS "{bucket} high", sum(trading_volume) AS volume
     FROM stocks_intraday
@@ -59,7 +58,7 @@ query = f"""
     FROM (
         SELECT
         symbol,
-        time_bucket('{bucket}', time) AS bucket,
+        time_bucket('7 day', time) AS bucket,
         first(price_open, time) AS opening_price,
         last(price_close, time) AS closing_price
         FROM stocks_intraday
@@ -87,6 +86,9 @@ query = f"""
 df = load_data(query)
 df = df.pivot(index=f"{bucket} bucket", columns="symbol", values="last_closing_price")
 st.line_chart(df)
+
+
+# --- Charts for a single symbol
 
 st.markdown(f"## ${symbol} Charts")
 
