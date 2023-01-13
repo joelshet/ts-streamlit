@@ -18,13 +18,27 @@ def load_data(sql):
     df = pd.DataFrame(query.fetchall())
     return df
 
+# --- Setup variables and page config
+
+st.title("Timescale Tickers Demo App")
+
+bucket_value = st.sidebar.number_input(label="Change bucket size", min_value=1, max_value=365, step=1, value=14)
+bucket = f'{bucket_value} day'
+
+symbol_query = """
+    SELECT DISTINCT symbol
+    FROM stocks_intraday
+"""
+symbol_list = load_data(symbol_query)
+symbol = st.sidebar.selectbox(label="Select a symbol", options=symbol_list)
+
 
 # --- Create and run queries, displaying as desired
 
+f"""
+Most traded symbols in the last {bucket_value} days
 """
-Most traded symbols in the last 14 days
-"""
-bucket = '14 day'
+
 query = f"""
     SELECT symbol, max(price_high) AS "{bucket} high", sum(trading_volume) AS volume
     FROM stocks_intraday
@@ -36,47 +50,9 @@ query = f"""
 df = load_data(query)
 df 
 
-
-"""
-Apple's trading volume over time
-"""
-symbol = 'AAPL'
-bucket = '1 day'
-query = f"""
-    SELECT time_bucket('{bucket}', time) AS bucket, sum(trading_volume) AS volume
-    FROM stocks_intraday
-    WHERE symbol = '{symbol}'
-    GROUP BY bucket
-    ORDER BY bucket
-"""
-
-df = load_data(query)
-df
-st.line_chart(df[["volume"]])
-
-
-"""
-Apple's stock price over time
-"""
-bucket = '7 day'
-symbol = 'AAPL'
-query = f"""
-    SELECT time_bucket('{bucket}', time) AS bucket,
-    last(price_close, time) AS last_closing_price
-    FROM stocks_intraday
-    WHERE symbol = '{symbol}'
-    GROUP BY bucket
-    ORDER BY bucket
-"""
-df = load_data(query)
-df
-st.line_chart(df[["last_closing_price"]])
-
-
 """
 Top weekly gainers over time
 """
-bucket = '7 days'
 orderby = 'DESC'
 query = f"""
     SELECT symbol, bucket, max((closing_price-opening_price)/closing_price*100) AS price_change_pct
@@ -96,20 +72,63 @@ query = f"""
 df = load_data(query)
 df 
 
-
 """
 Weekly FAANG prices over time
 """
-bucket = '7 day'
 symbols = "('META', 'AAPL', 'AMZN', 'NFLX', 'GOOG')"
 query = f"""
-    SELECT symbol, time_bucket('{bucket}', time) AS bucket,
+    SELECT symbol, time_bucket('{bucket}', time) AS "{bucket} bucket",
     last(price_close, time) AS last_closing_price
     FROM stocks_intraday
     WHERE symbol in {symbols}
-    GROUP BY bucket, symbol
+    GROUP BY "{bucket} bucket", symbol
+    ORDER BY "{bucket} bucket"
+"""
+df = load_data(query)
+df = df.pivot(index=f"{bucket} bucket", columns="symbol", values="last_closing_price")
+st.line_chart(df)
+
+st.markdown(f"## ${symbol} Charts")
+
+f"""
+{symbol}'s high and low closing price
+"""
+query = f"""
+SELECT max(price_high) AS high, min(price_low) AS low
+FROM stocks_intraday
+WHERE symbol = '{symbol}'
+"""
+df = load_data(query)
+df
+
+
+f"""
+{symbol}'s trading volume over time
+"""
+
+bucket = '1 day'
+query = f"""
+    SELECT time_bucket('{bucket}', time) AS bucket, sum(trading_volume) AS volume
+    FROM stocks_intraday
+    WHERE symbol = '{symbol}'
+    GROUP BY bucket
     ORDER BY bucket
 """
 df = load_data(query)
-df = df.pivot(index="bucket", columns="symbol", values="last_closing_price")
-st.line_chart(df)
+df
+st.line_chart(df[["volume"]])
+
+f"""
+{symbol}'s stock price over time
+"""
+query = f"""
+    SELECT time_bucket('{bucket}', time) AS "{bucket} bucket",
+    last(price_close, time) AS last_closing_price
+    FROM stocks_intraday
+    WHERE symbol = '{symbol}'
+    GROUP BY "{bucket} bucket"
+    ORDER BY "{bucket} bucket"
+"""
+df = load_data(query)
+df
+st.line_chart(df[["last_closing_price"]])
