@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import sqlalchemy
-from sqlalchemy import text
+import SQLAlchemy
+from SQLAlchemy import text
 
 # --- Setup the database connection
 
